@@ -1,2 +1,3 @@
 # gip-pmbot
-PMBot aims to develop an AI-powered web tool that provides structured initial feedback on areas such as market opportunity, value proposition, technical feasibility and monetisation. The project combines AI application development with startup evaluation, giving members exposure to both software development and early-stage venture thinking.
+Early-stage student founders often need feedback on their pitch decks, business models and project write-ups, but may not always have immediate access to mentors while refining their ideas.
+PMBot aims to develop an AI-powered web tool that provides structured initial feedback on areas such as market opportunity, value proposition, technical feasibility and monetisation. The project combines AI application development with startup evaluation, giving members exposure to both software development and early-stage venture thinking. The project also aims to be an internal automation tool that can automate SUDev admin work.
