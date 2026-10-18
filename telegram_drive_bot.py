@@ -6,8 +6,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from google.genai import types
 from google import genai
+from groq import Groq
 from dotenv import load_dotenv
-
 load_dotenv()
 
 # Enable logging so you can see messages and errors in your VS Code terminal
@@ -19,8 +19,29 @@ logger = logging.getLogger(__name__)
 # # --- CONFIGURATION ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 FOLDER_ID = os.getenv("FOLDER_ID")
 CREDENTIALS_FILE = os.getenv("CREDENTIALS_FILE")
+
+def test_ai_connection():
+    """Performs a quick test call to Gemini before scanning Drive."""
+    print("🔌 Testing connection to Gemini AI model...")
+    if not GEMINI_API_KEY:
+        print("❌ GEMINI_API_KEY is missing or empty! Check your .env file.")
+        return False
+        
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        # Send a tiny test message to verify the API key and model access
+        client.models.generate_content(
+            model='gemini-3.5-flash-lite',
+            contents="ping",
+        )
+        print("✅ Successfully connected to Gemini AI model!")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to connect to Gemini AI: {e}")
+        return False
 
 def fetch_folder_recursive(service, folder_id, documents_dict):
     """Recursively crawls subfolders and extracts text from docs, sheets, slides, and text files."""
@@ -95,9 +116,13 @@ def fetch_drive_documents():
         logger.error(f"Error connecting to Google Drive: {e}")
         return {"Notice.txt": "Could not connect to Google Drive. Check credentials and folder permissions."}
 
-# Pre-load documents when the script starts
-drive_docs = fetch_drive_documents()
-context_corpus = "\n".join([f"=== FILE: {name} ===\n{content}\n" for name, content in drive_docs.items()])
+if not test_ai_connection():
+        print("❌ Startup aborted due to AI connection failure. Please check your GEMINI_API_KEY.")
+        exit(1)
+else:
+    # Pre-load documents when the script starts
+    drive_docs = fetch_drive_documents()
+    context_corpus = "\n".join([f"=== FILE: {name} ===\n{content}\n" for name, content in drive_docs.items()])
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message when a user starts the bot."""
@@ -117,6 +142,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
     
     try:
+        # client = Groq(api_key=GROQ_API_KEY)
+        
+        # full_prompt = (
+        #     f"Here are the documents from our team's Google Drive folder:\n"
+        #     f"{context_corpus}\n\n"
+        #     f"User Question: {user_message}"
+        # )
+        
+        # # Call Groq's Llama 3.1 8B model
+        # chat_completion = client.chat.completions.create(
+        #     model="openai/gpt-oss-20b",  # Groq's fast Llama 3.1 8B model
+        #     messages=[
+        #         {
+        #             "role": "system",
+        #             "content": (
+        #                 "You are the official conversational assistant for NTU Garage EEE. "
+        #                 "Answer user questions accurately, naturally, and helpfully based strictly on the provided Google Drive folder contents."
+        #             )
+        #         },
+        #         {
+        #             "role": "user", 
+        #             "content": full_prompt
+        #         }
+        #     ],
+        #     temperature=0.3,
+        # )
+        
+        # # Extract the reply text from Groq's response format
+        # reply_text = chat_completion.choices[0].message.content
+
         client = genai.Client(api_key=GEMINI_API_KEY)
         
         full_prompt = (
@@ -146,7 +201,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == "__main__":
     print("🤖 Starting Telegram AI Agent...")
-    
+
     # Build the Telegram application
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     
